@@ -1,0 +1,5 @@
+#!/usr/bin/bash
+
+cd /home/deployment/ssh_keys
+git pull
+

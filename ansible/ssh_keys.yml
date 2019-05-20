@@ -1,0 +1,64 @@
+---
+- hosts: web
+  tasks:
+
+  - name: Get hostname
+    command: "hostname -s"
+    register: target
+
+  - name: Create list
+    command: "cat {{ item }}"
+    with_fileglob: "/home/deployment/ssh_keys/{{ target.stdout }}/*.pub"
+    register: ssh_keys
+
+  - name: Git pull
+    command: "git pull"
+    args:
+      chdir: "/home/deployment/ssh_keys"
+
+  - name: print hostname
+    debug: msg="{{ target.stdout }}"
+
+  - name: Recreate authoried_keys from template
+    template:
+      src: templates/authorized_keys.j2
+      dest: /home/deployment/.ssh/authorized_keys
+      owner: deployment
+      group: deployment
+      mode: '0600'
+
+  - name: Set up multiple authorized keys
+    authorized_key:
+      user: deployment
+      state: present
+      key: '{{ item }}'
+    with_file:
+      - "/home/deployment/ssh_keys/{{ target.stdout }}/id_rsa_app3.pub"
+      - "/home/deployment/ssh_keys/{{ target.stdout }}/id_rsa_app4.pub"
+
+
+
+#  - name: read files
+#    debug: var="{{ lookup('file','{{ item }}') }}"
+#    with_items: ssh_keys
+#    register: ssh_list
+#    #with_fileglob: "/home/deployment/ssh_keys/{{ target.stdout }}/*.pub"
+    
+#  - name: read files
+#    debug: "{{ item }}"
+#    with_lines: "cat /home/deployment/ssh_keys/{{ target.stdout }}/*.pub"
+
+#  - name: Manage  authorized key from repo
+#    authorized_key:
+#      user: deployment
+#      state: present
+#      #key: "{{ lookup('file','{{ item }}') }}"
+#      key: "{{ item }}"
+#    #with_fileglob: "/home/deployment/ssh_keys/{{ target.stdout }}/*.pub"
+#    with_lines: "cat /home/deployment/ssh_keys/{{ target.stdout }}/*.pub"
+#    #with_items: "{{ lookup('fileglob', '/home/deployment/ssh_keys/{{ target.stdout }}/*.pub') }}"
+#    #loop: {{ lookup('fileglob', '/home/deployment/ssh_keys/{{ target.stdout }}/*.pub') }},
+#    #with_items: "{{ ssh_keys }}"
+    #with_lines: "cat /home/deployment/ssh_keys/{{ target.stdout }}/*.pub"
+    #with_items: "{{ lookup('file','{{ ssh_keys }}') }}"
+
